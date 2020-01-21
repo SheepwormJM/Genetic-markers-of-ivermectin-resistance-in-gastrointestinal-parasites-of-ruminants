@@ -1,0 +1,5 @@
+# Fastqc (http://www.bioinformatics.babraham.ac.uk/projects/fastqc/):
+for i in *gz; do fastqc $i ; done
+
+# To MultiQC (Ewels et al., 2016) files:
+multiqc *<common_end_of_directory>/*<suffix_of_file>
