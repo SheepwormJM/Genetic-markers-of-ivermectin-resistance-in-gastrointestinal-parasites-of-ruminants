@@ -1,0 +1,62 @@
+#
+#	awk
+#
+# ‘awk’ is good to filter files using data values, or to re-organise columns.
+
+# For example…
+# To obtain data above a given threshold of three standard deviations above the 
+# mean: 
+# 1. Open the .igv file in R and calculate the threshold value
+# 2. Exit R, and use awk to extract values greater than the threshold
+
+awk ‘$5 > threshold_value’ <file_name>.igv > <new_file_name>.igv
+
+# To convert a 10 kb window Fst .igv file to a .bed file:
+
+awk ‘{print $1 “\t” ($2-4999) “\t” ($2+5000) “\t” $5}’ <file_name>.igv \
+> \
+<new_file_name>.bed
+
+#
+#	grep
+#
+# This finds regular expressions (i.e. text usually) and extracts lines which 
+# contain the regular expression. 
+
+# For example:
+
+find . -name "<file_name>" | xargs grep -E 'regular_expression' > <regular_expression_file_name>
+
+# Can require an exact match, or any match. Can provide the name of the 
+# regular expression (eg. unmapped or Contig12), or a file. 
+
+#
+# sed
+#
+# This replaces items in the file (e.g. words, spaces) with other items. 
+
+# For example the following replaces ‘contig’ with a space: 
+
+sed 's/contig//g' <file_name> > <new_file_name>
+
+#
+#	bedtools
+#
+# This is a suite of tools useful for manipulating files containing genomic 
+# positions. Several uses have already been shown above (1.4, 1.8). 
+
+# It is important that a .bed file has no header line. Also, it requires the first 
+# column to contain the chromosome/contig, the second the contain the first 
+# basepair and the third column the last basepair of the genomic position or 
+# region.
+
+bedtools intersect -a <file_name>.bed -b <file_name>.bed -wa -wb -f 2E-9 > <file_name>.bed  
+
+#
+#	Intersecting files by text expression
+#
+# The script ‘list.join2List.nonUnique.pl’ was provided by Dr Thomas Otto.
+# It compares the first column of each input file for identical regular expressions
+# and merges the two files by these expressions.
+
+list.join2List.nonUnique.pl <file_name_1>.txt <file_name_2.txt> > <new_file_name>.txt
