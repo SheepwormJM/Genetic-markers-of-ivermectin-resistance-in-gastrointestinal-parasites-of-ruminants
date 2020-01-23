@@ -1,0 +1,147 @@
+#
+# Quality check of raw reads (note, these have already had adaptor sequences removed)
+#
+# Fastqc:
+for i in *gz; do fastqc $i ; done
+
+# To MultiQC (Ewels et al., 2016) files:
+multiqc *<common_end_of_directory>/*<suffix_of_file>
+
+#
+# Align reads to reference genome
+#
+# Script belongs to Dr S. Doyle, WSI
+# Uses samtools (Li et al., 2009) and BWA-MEM (Li, 2013; Li and Durbin, 2009)
+# Put in the command line when run the script:
+
+./run_bwa_splitter <sample_name> <reference.fa> <read1_file.fa> <read2_file.fa>
+
+# BWA-MEM alignment of reads shell script for Pool-Seq:
+
+#!/usr/bin/env bash
+#####################################################################
+# run_bwamem_splitter.sh
+#
+# sd21@sanger.ac.uk
+# July 2018
+#####################################################################
+sample_name=$1
+reference=$2
+read1=$3
+read2=$4
+
+ID="U$(date +%s)"
+
+if [ "$#" -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+        echo ""
+    echo "Usage: ~sd21/bash_scripts/run_bwa_splitter <SAMPLE_PREFIX> <REFERENCE> <R1.fastq> <R2.fastq>"
+    echo ""
+    exit 0
+fi
+
+if [ -d "${sample_name}_bwasplitter_out" ]; then
+        echo -e "\nThere is already a run started with this sample name. Rename and start again\n"
+    exit 0
+fi
+
+
+mkdir ${sample_name}_bwasplitter_out
+cd ${sample_name}_bwasplitter_out
+mkdir logfiles
+
+# prepare reference and split data
+echo -e "# prepare reference and split the raw data
+sample_name=$"{1}"
+reference=$"{2}"
+read1=$"{3}"
+read2=$"{4}"
+ln -sf $"{reference}" ref.fa
+bwa index -b 100000000 ref.fa
+
+if [[ $read1 =~ \.gz$ ]]
+then ln -sf $"{read1}" R1.fq.gz; zcat R1.fq.gz | split -d -a 3 -l 4000000 - R1_tmp_
+else ln -sf $"{read1}" R1.fq; split -d -a 3 -l 4000000 R1.fq R1_tmp_
+fi
+
+if [[ $read2 =~ \.gz$ ]]
+then ln -sf $"{read2}" R2.fq.gz; zcat R2.fq.gz | split -d -a 3 -l 4000000 - R2_tmp_
+else ln -sf $"{read2}" R2.fq; split -d -a 3 -l 4000000 R2.fq R2_tmp_
+fi
+
+
+#split -d -a 3 -l 4000000 R1.fq R1_tmp_
+#split -d -a 3 -l 4000000 R2.fq R2_tmp_
+touch step1_FINISHED" > step1_bwasplitter
+chmod a+x step1_bwasplitter
+
+
+# prepare split mapping and set off mapping
+echo -e "# prepare the split mapping run files
+sample_name=$"{1}"
+n=0
+for i in \` ls -1 R1_* \` ; do
+let \"n+=1\"
+echo -e \"bwa mem -t 4 -R '@RG\\\\\\\\\\\tRG:$"{sample_name}"\\\\\\\\\\\tID:$"{sample_name}"\\\\\\\\\\\tSM:$"{sample_name}"' -Y -M -C ref.fa $"{i}" $"{i/R1/R2}" | samtools-1
+.3 view --threads 4 -b - | samtools-1.3 sort --threads 4 -o $"{i/R1/bwamem}".tmp.sort.bam - \"  > step2.2_bwamem_tmp_$"{n}"; done; chmod a+x step2.2_bwamem_tmp_*
+touch step2_FINISHED" > step2.1_bwasplitter
+
+chmod a+x step2.1_bwasplitter
+
+
+
+# merge mapping, mark duplicates, generate stats, and finalise
+
+echo -e "# merge mapping, mark duplicates, generate stats, and finalise
+sample_name=$"{1}"
+ls -1 *.tmp.sort.bam > bam.fofn
+samtools-1.3 merge --threads 4 -cpf -b bam.fofn tmp.merged.sorted.bam
+#rm *.tmp.sort.bam
+java -Xmx20g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/picard-tools-2.5.0/picard.jar MarkDuplicates INPUT=tmp.merged.sorted.bam OUTPUT=tmp.merged.sorted.marked.bam
+METRICS_FILE=tmp.merged.sorted.marked.metrics TMP_DIR=$PWD/tmp
+samtools-1.3 flagstat tmp.merged.sorted.marked.bam > $"{sample_name}".merged.sorted.marked.flagstat
+#samtools-1.3 stats tmp.merged.sorted.marked.bam | grep ^SN | cut -f 2- > $"{sample_name}".merged.sorted.marked.stats
+bamtools stats -in tmp.merged.sorted.marked.bam > $"{sample_name}".merged.sorted.marked.bamstats
+samtools-1.3 view --threads 4 -F 12 -b tmp.merged.sorted.marked.bam -o $"{sample_name}".merged.sorted.marked.bam
+samtools-1.3 view --threads 4 -f 12 tmp.merged.sorted.marked.bam -o $"{sample_name}".unmapped.bam
+samtools-1.3 index -b $"{sample_name}".merged.sorted.marked.bam
+rm R[12]_*
+rm *.tmp.*
+mv *.[eo] logfiles/
+touch step3_FINISHED
+touch bam_splitter_COMPLETE" > step3_bwasplitter
+chmod a+x step3_bwasplitter
+
+
+
+#----- RELEASE THE KRAKEN!
+
+# run - reference and paired read setup
+bsub -q normal -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n1 -M10000 -J step1_bwasplitter_${ID} -e step1_bwasplitter.e -o step1_bwasplitter.o ./step1_bwasplitter
+ ${sample_name} ${reference} ${read1} ${read2}
+
+
+# run - prepare mapping scripts
+bsub -q normal -w "done(step1_bwasplitter_${ID})" -R'span[hosts=1] select[mem>2500] rusage[mem=2500]' -n1 -M2500 -J step2.1_bwasplitter_${ID} -e step2.1_bwasplitter.e -o ste
+p2.1_bwasplitter.o ./step2.1_bwasplitter ${sample_name}
+
+while [ ! -f step1_FINISHED ]
+do
+  sleep 2
+done
+
+jobs=$( ls -1 R1_tmp_* | wc -l )
+
+
+# run - mapping in array
+bsub -q normal -w "done(step2.1_bwasplitter_${ID})"  -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n6 -M10000 -J step2.2_bwasplitter_${ID}_[1-$jobs] -e step2.2_bwas
+plitter[1-$jobs].e -o step2.2_bwasplitter[1-$jobs].o ./step2.2_bwamem_tmp_\$LSB_JOBINDEX
+
+
+# run - merge mapping data into a single bam, mark duplicates, and clean up
+bsub -q normal -w "done(step2.2_bwasplitter_${ID}_[1-$jobs])"  -R'span[hosts=1] select[mem>20000] rusage[mem=20000]' -n6 -M20000 -J step3_bwasplitter_${ID} -e logfiles/step3
+_bwasplitter.e -o logfiles/step3_bwasplitter.o ./step3_bwasplitter ${sample_name}
+
+#####################################################################
+# Once completed, perform quality check of read alignment using MultiQC
+
+multiqc *<common_end_of_directory>/*flagstats
