@@ -1,0 +1,265 @@
+1.7.1	Adegenet
+# First, to convert a plink file (from Stacks) into the correct format for 
+# Adegenet v2.1.1 
+# (Dupuis et al., 2018; Jombart, 2008; Jombart and Ahmed, 2011):
+# Plink (Chang et al., 2015) can work with scaffolds, but expects them to be 'contig1' and not just '1' 
+# in the .map file. 
+# So, to rename the first column set in R:
+
+plinkmap<-read.table("plink.map", header=F)
+plinkmap$V1<-paste('contig',plinkmap$V1,sep='')
+
+# Note the paste indicates that for each line of the column V1, we add contig in 
+# front of it. The sep='', means there is nothing between the contig and the 
+# contig number. 
+# Save it as so: 
+
+write.table(plinkmap,"<new_file_name>",quote = FALSE,row.names = FALSE,sep = "\t")
+
+# The quote=F is important, as otherwise the file will be output using "V1" "V2" 
+# etc. and all non-numeric character components will be put into quotes. 
+# Once produced, remove the header row.
+# Rename the .ped file to match the new .map file if required. 
+
+# Run plink in the unix cmd line (note leave off the .map and .ped).
+# The --aec stands for --allow-extra-chr, and allows the use of scaffolds/contigs 
+# rather than chromosomes.
+
+plink --file all_0.001_ord_pop.plink --recodeA –aec
+
+# To run Adegenet load R. 
+
+library("ape")
+library("pegas")
+library("seqinr")
+library("ggplot2")
+library("adegenet")
+packageDescription("adegenet", fields = "Version")
+
+all_0.001<-read.PLINK("plink.raw", map.file="plink.map",)
+
+# This will be loaded as a ‘Genlight’ object. Information about it can be found by 
+# typing it’s name, i.e. all_0.001.
+
+#Now, plot the genotypes of each SNP for each individual
+
+pdf("glplotblue_all_0.001.pdf", width = 4,height = 4,useDingbats = FALSE)
+glPlot(all_0.001, col=bluepal(3), posi="topleft",)
+dev.off()
+
+# Note, what order are the individuals in?
+
+order(all_0.001@pop)
+
+# If not in the desired order can re-order the individuals:
+
+all_0.001<-all_0.001[order(all_0.001@pop)]
+order(all_0.001@pop)
+
+# Make a neighbour-joining tree to see the distance between individuals. 
+
+library(ape)
+tre <- nj(dist(as.matrix(p19p18_0.001)))
+plot(tre, typ="fan", cex=0.7)
+title("<plot_name>")
+
+# Perform and plot a Principal Components Analysis (PCA):
+
+pca1 <- glPca(all_0.001)
+
+#Select the number of axes: 
+2
+
+pca1
+
+scatter(pca1, posi="bottomright")
+title("<plot_title>")
+
+# Note, to make the PCA and NJ plots coloured, and to share the same colours 
+# do the following:
+# Note, the colouring is dependent on the PCA scoring for each individual.
+# Note, the plot below includes the first 14 eigenvalues. 
+
+myCol <- colorplot(pca1$scores,pca1$scores, transp=TRUE, cex=4)
+abline(h=0,v=0, col="grey")
+add.scatter.eig(pca1$eig[1:40],2,1,2, posi="bottomright", inset=.05, ratio=.3)
+title("<plot_title>")
+
+plot(tre, typ="fan", show.tip=FALSE)
+tiplabels(pch=20, col=myCol, cex=4)
+title("<plot_title>")
+
+# Discriminant Analysis of Principal Components (DAPC):
+# (Dupuis et al., 2018; Jombart et al., 2010)
+# Note - setting n.pca as Null allows it to include all PCs - however, you get 
+# presented with a graph (variance of PCA) and are asked how many PCs you 
+# want to retain.
+
+dapc1 <- dapc(all_0.001, n.pca=NULL, n.da=3)
+
+# Choose the number PCs to retain (>=1): 
+45 
+dapc1
+
+scatter(dapc1,scree.da=FALSE, bg="white", posi.pca="topright", legend=TRUE, txt.leg=paste("group", 1:2), col=c("red","blue"))
+title("<plot_title>")
+
+# A composition plot shows the differences assigned to each individual more 
+# clearly:
+
+compoplot(dapc1, col=c("red","blue"),lab="", txt.leg=paste("group", 1:2), ncol=2)
+
+# To look at SNP allele contributions:
+
+loadingplot(dapc1$var.contr, thres=1e-4)
+title("<plot_title>")
+
+# So, I know the row of variable essentially - I want to find out which SNP is 
+# contributing the most (eg. variable 25877).
+# pca.cent has all the SNPs. 
+
+# To identify which SNPs are the main contributors...
+
+cont<-dapc1$pca.cent
+cont2<-as.data.frame(cont)
+head(cont2)
+
+#                 cont
+#593_37_T  0.08163265
+#593_51_G  0.08163265
+#593_63_T  0.05000000
+
+cont2$number<-(1:119880)
+head(cont2)
+
+#                 cont           number
+#593_37_T  0.08163265      1
+#593_51_G  0.08163265      2
+#593_63_T  0.05000000      3
+
+# To extract just those SNPs of interest, as identified by the loading plot above.
+
+cont3<-subset(cont2, cont2$number > 25870 & cont2$number < 25890)
+cont3
+
+# Note: There are many more possibilities to analyse the data using Adegenet. 
+# Those shown here are just a few ways to manipulate the data. For more 
+# information see the tutorial vignettes.
+
+1.7.2	KING analysis
+# KING analysis (Manichaikul et al., 2010) looks at whether sites are identical-by-
+# state between individuals. It uses this information to compute pairwise 
+# relatedness.
+# Note, KING is run via SNPRelate v1.12.0
+
+install.package(gdsfmt)
+install.package(SNPRelate)
+install.package(ggrepel)
+
+library(gdsfmt)
+library(SNPRelate)
+library(ggplot2)
+library(ggrepel)
+
+#---- INPUT FILES
+vcf="<file_name>.vcf"
+#group="host"
+
+#---- Run script
+#colour_group=read.table(group, header=F)
+
+SNPRelate::snpgdsVCF2GDS(vcf.fn=vcf, out.fn="out.recode.vcf.gds")
+genofile_vcf <- snpgdsOpen(filename="out.recode.vcf.gds", readonly = FALSE, allow.duplicate = TRUE)
+
+x_robust<-snpgdsIBDKING(genofile_vcf, sample.id=NULL, snp.id=NULL, autosome.only=FALSE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type=c("KING-robust"), family.id=NULL, verbose=TRUE)
+
+dat <- snpgdsIBDSelection(x_robust, 1/62)
+head(dat)
+
+###           ID1          ID2 IBS0   kinship
+###1 FL1_1_Pos_19 FL1_0_Pre_18    0 0.4970893
+
+plot(x_robust$IBS0, x_robust$kinship, xlab="Proportion of Zero IBS",
+    ylab="Estimated Kinship Coefficient (KING-robust)", ylim=c(-1,1), xlim=c(0,0.15))
+abline(h=0, col="red")
+
+# To incorporate the populations information in the analysis... 
+ 
+pop_code<-scan("pop_order.txt", what=character())
+
+x_robust<-snpgdsIBDKING(genofile_vcf, sample.id=NULL, snp.id=NULL, autosome.only=FALSE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type=c("KING-robust"), family.id=pop_code, verbose=TRUE)
+
+plot(x_robust$IBS0, x_robust$kinship, xlab="Proportion of Zero IBS",
+    ylab="Estimated Kinship Coefficient (KING-robust)", ylim=c(-1,1), xlim=c(0,0.15), col=pop_code)
+abline(h=0, col="purple")
+
+1.7.3	Hardy Weinberg Equilibrium
+# Though HWE was calculated by Stacks (1.6), this produces haplotype values.
+# It also outputs a p-value of zero when there are no SNPs present within a 
+# haplotype, which is unhelpful, as HWE cannot be calculated for these RADloci.   
+# You can use VCFtools to calculate HWE by population, and for SNPs.
+
+vcftools-0.1.14 \
+--vcf <file_name>.vcf \
+--out <output_directory> \
+--hardy 
+
+# Note, to calculate by population, remove individuals from the analysis. 
+
+1.7.4	ggtree 
+# 1. To make a NJ tree coloured by population, adapted from Dr S Doyle's script 
+# on Github (https://github.com/stephenrdoyle/wtac_helminths_2019, accessed 
+# 30.09.19):
+
+library(poppr)
+# v2.8.2
+library(vcfR)
+# v1.7.0
+
+vcf  <-  read.vcfR("populations.snps.vcf", verbose = FALSE)
+metadata  <-  read.table("pop_map_forR.txt", header = T)
+
+vcf.gl	<-	vcfR2genlight(vcf)
+pop(vcf.gl)  <-  metadata$Pop
+ploidy(vcf.gl)  <-  2
+
+
+## Note that:
+# 1. UPGMA is the Unweighted Pair Group Method with Arithmetic Mean, also 
+# called average neighbour. Three options are provided by poppr. This option 
+# sits nicely between being overly inclusive and overly conservative when 
+# generating clusters. ie. This one will use the average distance between 
+# samples to cluster. Another (farthest neighbour) will only cluster individuals if 
+# the MAXIMUM distance between individuals is below a certain threshold. While 
+# the last (nearest neighbour) will cluster individuals provided the minimum 
+# distance is less than a certain value. Hence, the latter can cluster too many, 
+# the former too few... 
+
+# 2. aboot is short for 'any boot' and relates to bootstrapping values (randomly 
+# sampling with replacement) to generate cluster relationships.
+
+# bitwise.dist calculates the fraction of sites the same between samples and can 
+# cope with missing data. 
+# sample relates to how many times to sample (bootstrap) the data. The default 
+# is 100. 
+
+#--- generate a pairwise distance matrix from the vcf, which we will use 
+# to make a tree
+tree_data <- aboot(vcf.gl, tree = "upgma", distance = bitwise.dist, sample = 100, showtree = F, cutoff = 50, quiet = T)
+
+library(ggtree)
+
+#--- plot the tree
+tiff("ggtree_all_0.001_02.10.19.tiff", width=580)
+ggtree(tree_data, layout="circular") +
+        geom_tiplab(size = 2, color = cols[pop(vcf.gl)]) +
+        xlim(-0.1, 0.3) +
+        geom_nodelab(size = 2, nudge_x = -0.006, nudge_y = 1) +
+        theme_tree2(legend.position = 'centre')+
+cols <- c("red","blue")
+dev.off()
+
+#Note, red is Post and blue is Pre. 
+
+ggsave("tree_plots.pdf", height=15, width=10, useDingbats = FALSE)
+ggsave("tree_plots.png", height=15, width=10)
