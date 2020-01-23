@@ -1,0 +1,12 @@
+# The raw reads were split by individual and barcodes were removed.
+
+stacks-2.0Beta2/bin/process_radtags \
+-1 <file_name>_1.fastq.gz \
+-2 <file_name>_2.fastq.gz \
+-b <barcodes_file_name> \
+-o <output_directory> \
+--renz_1 <restriction_endonuclease_1_in_lower_case> \
+--renz_2 <restriction_endonuclease_2_in_lower_case> \
+-r
+
+# Next run a quality check of the de-multiplexed reads as before. 
