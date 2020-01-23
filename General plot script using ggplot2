@@ -1,0 +1,16 @@
+# In R, use ggplot2 (Wickham, 2016) to produce plots. 
+# There are many variations of script possible. 
+# One example, used for plotting genes and 10 kb window Fst values along a 
+# contig is shown below:
+
+x<-ggplot() +
+coord_cartesian(ylim=c(0,1)) + labs(y="Fst value", x="BP") +
+geom_rect(aes(xmin=gene$Start_mRNA, ymin=0, xmax=gene$End_mRNA, ymax= 1), fill="light blue", alpha="0.3")+
+geom_line(aes(winavg$BP, winavg$Farm3_MeanWIN, colour="10 kb win 0.1 Farm3_Pre:Post (Average Fst)"), size=2) +
+geom_line(aes(win$V3, win$V10, colour="10 kb win 0.1 Farm3_Post'A':Post'B'"), size=2) +
+geom_line(aes(win$V3, win$V5, colour="10 kb win 0.1 Farm2_Pre:Post"), size=2) +
+geom_text(aes(label=gene$Label), x=gene$mid, y=0.5, angle=90, size=3)+
+geom_hline(aes(yintercept=0.06), linetype="dotdash")+
+geom_text(aes(label="Fst=0.06"), x=50, y=0.052, size=3)+
+scale_colour_manual(name="Key to colour", values=c("10 kb win 0.1 Farm3_Pre:Post (Average Fst)"="green3", "10 kb win 0.1 Farm3_Post'A':Post'B'"="grey29", "10 kb win 0.1 Farm2_Pre:Post"="darkorange2"))
+x
