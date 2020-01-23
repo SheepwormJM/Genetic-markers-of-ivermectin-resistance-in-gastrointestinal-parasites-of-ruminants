@@ -1,0 +1,23 @@
+# To calculate the SNP density in 1 kb windows:
+
+vcftools-0.1.14 \
+--vcf <file_name>.vcf \
+--out <output_directory> \
+--SNPdensity 1000
+
+# To calculate the missingness per individual (i.e. the percentage of missing 
+# sites compared to those identified across all individuals)
+
+vcftools-0.1.14 \
+--vcf <file_name>.vcf \
+--out <output_directory> \
+--missing-indv
+
+# To calculate the missingness per site (SNP) (i.e. the percentage of missing 
+# individuals per site)
+
+vcftools-0.1.14 \
+--vcf <file_name>.vcf \
+--out <output_directory> \
+--missing-site
+
