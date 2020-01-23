@@ -1,0 +1,110 @@
+# Use the program SnpEff to estimate SNP impact (Cingolani et al., 2012)
+# First you have to make a new genome database, as T. circumcincta does not 
+# have one available. 
+
+# Create directory for this new genome
+cd snpEff/data
+mkdir Tc_V1_171026
+cd Tc_V1_171026
+
+# Get annotation file – create a link to the .gff3 file. Call this genes.gff
+
+ln -s braker/Tc_V1_all_sd/augustus.gff3 genes.gff
+
+# Create a link to the genome (note, this needs to be in the 'genomes' folder). 
+# Call this Tc_V1_171026.fa
+
+cd snpEff/data/genomes
+ln -s <file_path>/tc_171026.renamed.fa Tc_V1_171026.fa
+
+# Then create a protein file:
+
+gffread genes.gff -g Tc_V1_171026.fa -y protein.fa
+
+# Note, gffread rebuilds the fasta index for the genome.
+# Next, modify the config file:
+
+cd snpEff
+
+echo "
+
+# Teladorsagia circumcincta genome, version Tc_V1_171026
+Tc_V1_171026.genome : Teladorsagia circumcincta
+
+" > Teladorsagiacircumcincta.genome
+
+cat snpEff.config Teladorsagiacircumcincta.genome > tmp; mv tmp snpEff.config
+
+# Build database
+
+cd snpEff
+java -jar snpEff.jar build -v Tc_V1_171026 
+
+# Completes quickly in the cmd line!
+
+#To check it is there...
+
+java -jar snpEff.jar databases | grep -i circumcincta
+
+# Next, you need to have a .vcf file of all the SNPs of interest. To create one can 
+# use samtools:
+
+samtools-1.3 mpileup -B -q 20 -Q 30 \
+--ff DUP \
+-uDf tc_171026.renamed.fa \
+-b poolseq_bam_files/bam.list | \
+bcftools-1.5 call -mv -O v > <file_name>.poolseq.variants.vcf 
+
+# In this study the average depth for each variant site was calculated per farm, 
+# using VCFtools v0.1.14 (Danecek et al., 2011) and this was used to filter the
+# .vcf file.
+# Note that you need to remove all samples which are not part of the farm.
+
+vcftools-0.1.14 \
+--vcf ./<file_name>.poolseq.variants.vcf \
+--remove-indv <name_of_sample> \
+--remove-indv <name_of_sample> \
+--min-meanDP 20 \
+--max-meanDP 60 \
+--out <file_name> \
+--site-mean-depth
+
+# Converted the output depth file to a .bed file. Used bedtools intersect to filter 
+# and intersect the file with the .bed file containing SNPs of interest previously 
+# produced by pairwise comparison analysis and filtered the .vcf file. 
+
+# To filter the .vcf file require a list of SNPs to retain:
+
+awk '{print $1 "\t" $3}' <file_name>.bed > <positions_file_name>.bed
+
+vcftools-0.1.14 \
+--vcf <file_name>.poolseq.variants.vcf \
+--positions <positions_file_name>.bed \
+--out <file_name> \
+--recode \
+--recode-INFO-all
+
+
+# Made SnpEff run script:
+
+java -Xmx4g -jar snpEff/snpEff.jar \
+-c snpEff/snpEff.config \
+-v -stats Tc_V1_171026_<file_name>.poolseq.variants.html \
+Tc_V1_171026 \
+<file_path>/<file_name>.poolseq.variants.vcf > <file_name>.variants.ann.vcf
+
+#The -c is to point to the config file, if not in the folder of it. 
+#The -v is for verbose - it prints out what it actually does, otherwise you just get 
+# the .vcf file I think
+# The input is a VCF file containing the SNPs of interest, and the output is 
+# another VCF file with a far right column containing annotation information. 
+# It is run in java so point the program to the memory required (-Xmx4g)
+# SnpEff creates a file called "SnpEff_summary.html" showing basic statistics 
+# about the analyzed variants. Take a quick look at it.
+# By asking for -stats ex1.html, SnpEff outputs a webpage called ex1.html 
+# summarising the annotation results. 
+# This may be helpful when interpreting the ANN field: 
+# http://snpeff.sourceforge.net/VCFannotationformat_v1.0.pdf 
+# Look here http://snpeff.sourceforge.net/SnpEff_manual.html at the section 
+# ANN field (within the Input and output files section) for what each part of the 
+# ANN field means.
