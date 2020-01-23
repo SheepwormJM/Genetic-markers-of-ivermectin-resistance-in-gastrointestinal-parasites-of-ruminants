@@ -1,0 +1,194 @@
+#
+# Sample relatedness using Pearson’s correlation coefficient (r)
+#
+# Used to calculate the correlation coefficient between population allele 
+# frequencies. 
+# Use the allele frequency file produced by PoPoolation2:
+# <file_name>_rc
+# Use awk to get just the SNP data and the MAJOR allele frequencies (to make 
+# the file smaller). Put the populations in the order you want them to be in your 
+# plots.
+
+awk '{print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 "\t" $8 "\t" $9 "\t" $14 "\t" $15 "\t" $12 "\t" $10 "\t" $13 "\t" $11}' <file_name>_rc >  ordered_major_allele_<file_name>_rc
+
+# Get just the biallelic SNPs:
+
+awk '$4 == 2' ordered_major_allele_<file_name>_rc > biallelic_major_allele_<file_name>_rc
+
+# Remove all SNP information, so the file is just the sample major allele 
+# frequencies.
+
+awk '{print $10 "\t" $11 "\t" $12 "\t" $13 "\t" $14 "\t" $15}' biallelic_major_allele_<file_name>_rc >  just_ordered_biallelic_major_allele_<file_name>_rc
+
+# In R v3.1.2:
+# The file won't load as has missing elements per line... 
+# So to load adding this to the code: sep="\t", na.strings=""
+
+af<-read.table("just_ordered_biallelic_major_allele_<file_name>_rc", header=F, sep="\t", na.strings="")
+summary(af)
+
+# To make the major allele frequencies numerical and not factors...
+
+# So, first:
+af$V1<-as.character(af$V1)
+af$V1<-as.numeric( gsub("(\\d+)/(\\d+)", "\\1", af$V1, perl=T) ) / as.numeric ( gsub("(\\d+)/(\\d+)", "\\2", af$V1, perl=T) ) 
+
+af$V6<-as.character(af$V6)
+af$V6<-as.numeric( gsub("(\\d+)/(\\d+)", "\\1", af$V6, perl=T) ) / as.numeric ( gsub("(\\d+)/(\\d+)", "\\2", af$V6, perl=T) ) 
+
+af$V2<-as.character(af$V2)
+af$V2<-as.numeric( gsub("(\\d+)/(\\d+)", "\\1", af$V2, perl=T) ) / as.numeric ( gsub("(\\d+)/(\\d+)", "\\2", af$V2, perl=T) ) 
+
+af$V3<-as.character(af$V3)
+af$V3<-as.numeric( gsub("(\\d+)/(\\d+)", "\\1", af$V3, perl=T) ) / as.numeric ( gsub("(\\d+)/(\\d+)", "\\2", af$V3, perl=T) ) 
+
+af$V4<-as.character(af$V4)
+af$V4<-as.numeric( gsub("(\\d+)/(\\d+)", "\\1", af$V4, perl=T) ) / as.numeric ( gsub("(\\d+)/(\\d+)", "\\2", af$V4, perl=T) ) 
+
+af$V5<-as.character(af$V5)
+af$V5<-as.numeric( gsub("(\\d+)/(\\d+)", "\\1", af$V5, perl=T) ) / as.numeric ( gsub("(\\d+)/(\\d+)", "\\2", af$V5, perl=T) ) 
+
+summary(af)
+
+# To put headers on the columns....
+
+af$"Farm_2:Pre-Tx"<-af$V1
+af$"Farm_2:Post-IVM"<-af$V2
+
+af$"Farm_3:Pre-IVM:Rep_A"<-af$V3
+af$"Farm_3:Pre-IVM:Rep_B"<-af$V4
+
+af$"Farm_3:Post-IVM:Rep_A"<-af$V5
+af$"Farm_3:Post-IVM:Rep_B"<-af$V6
+
+af_b<-af
+af<-af_b[7:12]
+
+# To calculate the correlation between two columns:
+
+# https://www.statmethods.net/stats/correlations.html
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3820589/ 
+# https://support.minitab.com/en-us/minitab-express/1/help-and-how-
+# to/modeling-statistics/regression/supporting-topics/basics/a-comparison-of-
+# the-pearson-and-spearman-correlation-methods/ - will use Pearsons as it uses 
+# raw data while Spearmans ranks it. It is also more subtley informative that 
+# Spearmans. 
+
+# First to get only those that I want - ie. just the major alleles.... 
+# The pairwise.complete.obs will delete from all columns values which are 
+# missing in one column.
+
+#af_maj<-af[10:15]
+z<-cor(af, use="pairwise.complete.obs", method="pearson")
+z
+
+# To get significance level.
+library(Hmisc)
+# It automatically uses pairwise deletion...
+# Input must be a matrix
+rcorr(as.matrix(af), type="pearson")
+
+
+# To plot a correlogram in ggplot2:
+library(ggplot2)
+# First to calculate the correlations... as a correlation matrix (note, are using 
+# the cor above...)
+
+cormat <- round(cor(af, use="pairwise.complete.obs", method="pearson"),2)
+head(cormat)
+
+# The package reshape is required to melt the correlation matrix:
+
+library(reshape2)
+melted_cormat <- melt(cormat)
+head(melted_cormat)
+
+# Note that, a correlation matrix has redundant information. To set half of it to 
+# NA:
+# Get lower triangle of the correlation matrix
+
+get_lower_tri<-function(cormat){cormat[upper.tri(cormat)] <- NA 
+return(cormat)}
+  
+get_upper_tri <- function(cormat){cormat[lower.tri(cormat)]<- NA 
+return(cormat)}
+
+upper_tri <- get_upper_tri(cormat)
+upper_tri
+
+#Melt the correlation data and drop the rows with NA values:
+
+# Melt the correlation matrix
+library(reshape2)
+melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# Heatmap
+library(ggplot2)
+pdf("<plot_name>.pdf", width = 16, height = 8,useDingbats = FALSE)
+x<-ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+geom_tile(color = "white")+
+scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab",  name="Pearson\nCorrelation") +
+theme_minimal()+ 
+theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1), axis.title.x = element_blank(), axis.title.y = element_blank())+
+coord_fixed()
+x
+dev.off()
+
+# Negative correlations are blue and positive correlations are red. The function 
+# scale_fill_gradient2 is used with the argument limit = c(-1,1) as correlation 
+# coefficients range from -1 to 1.
+# coord_fixed() : this function ensures that one unit on the x-axis is the same 
+# length as one unit on the y-axis.
+# To try to add values...
+
+tiff("<plot_name>.tiff")
+y<-x+geom_text(aes(Var2, Var1, label = value), color = "black", size = 4) +
+theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  axis.ticks = element_blank(),
+  legend.justification = c(1, 0),
+  legend.position = c(0.6, 0.7),
+  legend.direction = "horizontal")+
+  guides(fill = guide_colorbar(barwidth = 7, barheight = 1,
+                title.position = "top", title.hjust = 0.5))
+y
+dev.off()
+
+#
+# Sample relatedness using SNPRelate to produce a PCA plot
+# Note - this is probably overfitted as the allele frequencies are summaries of the pooled data
+# Better to use the above
+#
+
+install.package(gdsfmt)
+install.package(SNPRelate)
+install.package(ggrepel)
+
+library(gdsfmt)
+library(SNPRelate)
+library(ggplot2)
+library(ggrepel)
+
+#---- INPUT FILES
+vcf="<file_name>.vcf"
+#group="host"
+
+#---- Run script
+#colour_group=read.table(group, header=F)
+
+SNPRelate::snpgdsVCF2GDS(vcf.fn=vcf, out.fn="out.recode.vcf.gds")
+genofile_vcf <- snpgdsOpen(filename="out.recode.vcf.gds", readonly = FALSE, allow.duplicate = TRUE)
+vcf_pca <- snpgdsPCA(genofile_vcf, autosome.only=FALSE)
+
+# make plot
+pdf("Fl.v2b7c.vcf.PCA.pdf")
+ggplot() + geom_point(aes(vcf_pca$eigenvect[,1],vcf_pca$eigenvect[,2]), colour=pop_map$V3) + ylab(paste0("PC2: ",vcf_pca$varprop[2])) + xlab(paste0("PC1: ",vcf_pca$varprop[1])) + geom_text_repel(aes(vcf_pca$eigenvect[,1],vcf_pca$eigenvect[,2], label=vcf_pca$sample.id), cex=1)
+dev.off()
+
+png("Fl.v2b7c.vcf.PCA.png")
+ggplot() + geom_point(aes(vcf_pca$eigenvect[,1],vcf_pca$eigenvect[,2]), colour=pop_map$V3) + geom_text_repel(aes(vcf_pca$eigenvect[,1],vcf_pca$eigenvect[,2], label=vcf_pca$sample.id), cex=1) + ylab(paste0("PC2: ",vcf_pca$varprop[2])) + xlab(paste0("PC1: ",vcf_pca$varprop[1]))
+dev.off()
+
