@@ -1,0 +1,34 @@
+# RAD loci were formed using the ref_map.pl of Stacks 2.0b 
+# (Catchen et al., 2013; Rochette et al., 2019). First, gstacks forms stacks of 
+# identical reads, then combines these to form RADloci. Following this, 
+# populations performs pairwise comparisons between the sample populations.
+
+stacks-2.0b/bin/ref_map.pl \
+--samples <directory_containing_bam_files> \
+--popmap <population_map_file_name> \
+-o <output_directory> \
+-T 8 \
+-X gstacks:"--var-alpha 0.001 --gt-alpha 0.001" \
+-X populations:"-p 2 -r 0.8 \
+--min_maf 0.048 \
+--max_obs_het 0.7 \
+--fstats \
+--fst_correction p_value \
+-k --smooth_fstats --sigma 333.33 --bootstrap \
+--ordered_export \
+--vcf \
+--genepop \
+--plink \
+--hwe"
+
+# It is also possible to run populations separately, using the gstacks output, 
+# which is quicker than re-running the entire pipeline. Though the populations 
+# commands are the same, the commands to find and output the files, and to 
+# specify the number of threads to use (-t/-T) are different and are shown 
+# below. You would include the populations specific commands after these. 
+
+stacks-2.0b/bin/populations \
+-P <directory_with_gstacks_output> \
+-M <population_map_file_name> \
+-O <output_directory> \
+-t 8
