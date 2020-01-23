@@ -1,0 +1,17 @@
+# Illumina RNA-Seq fastq files produced by Choi et al. (2017) were aligned to the 
+# reference genome using the online Galaxy web interface, maintained by the 
+# University of Glasgow. 
+# These were obtained from ftp://ftp.sra.ebi.ac.uk : 
+
+SRR3136984_1.fastq
+SRR3136984_2.fastq
+SRR3136980_1.fastq
+SRR3136980_2.fastq
+SRR3140154_1.fastq
+SRR3140154_2.fastq
+
+# Files were made ready for alignment using FASTQ Groomer v1.1.1. Default 
+# (basic) options were used (Blankenberg et al., 2010).
+# Next, RNA-Seq was aligned using HISAT2 v2.1.0 (Kim et al., 2015). Default 
+# options were used, and data was run ‘unstranded’. Note that HISAT2 also 
+# required samtools v1.4 as a dependency. 
