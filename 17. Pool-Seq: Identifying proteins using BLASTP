@@ -1,0 +1,31 @@
+# First, need to convert .igv file into a .bed file (see 1.9.1) and identify genes 
+# within windows of interest.
+
+# To obtain a list of gene names within windows:
+
+bedtools intersect \
+-a <file_name>.bed \
+-b augustus.gff3 \
+-wa -wb > \
+<file_name>GENES.txt
+
+# Note, the above will also contain all .gff3 information.
+# To extract just the mRNA bit (so have a single line for each gene):
+
+find . -name "<file_name>GENES.txt" | xargs grep -E 'mRNA' > <file_name>GENES_mRNA.txt
+
+# To identify the homologues:
+#
+# Extract gene names as a gene list (save as <file_name>_GENELIST.txt).
+#
+# Get the amino acid sequences of these genes in order to BLAST them:
+
+while read NAME; do samtools faidx Tc_aaseq.fa ${NAME} >> \
+<file_name>.aa.fa; done < \
+<file_name>_GENELIST.txt
+
+# The output file is the <file_name>.aa.fa
+# To identify homologues or equivalent genes use the WSI farm_blast script. 
+# Below is an example using the T. circumcincta PRJNA72569 protein database.
+
+farm_blast --blast_type blastp ./teladorsagia_circumcincta.PRJNA72569.WBPS12.protein.fa ./<file_name>.aa.fa --blast_options "-max_target_seqs 1"
