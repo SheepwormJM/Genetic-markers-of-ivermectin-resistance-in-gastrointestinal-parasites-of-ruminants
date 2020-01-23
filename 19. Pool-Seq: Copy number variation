@@ -1,0 +1,21 @@
+# Note that determining copy number variation will be very noisy for pooled sequencing data. Only consider further regions 
+# which are considerably different between sample populations.
+
+# Select only those read which have actually aligned, discard those which haven't 
+# (Picard SAM Flag '4', 'read unmapped'):
+
+samtools view -F 4 <file_name>.bam | perl -lane 'print "$F[2]\t$F[3]"' > <file_name>.hits
+
+# To use CNV-Seq (Xie and Tammi, 2009) to count the aligned reads and calculate a 
+# log2 fold ratio between two populations, along with a pvalue. A set window 
+# size of 5 kb was used.
+
+mkdir CNVSEQ
+cd CNVSEQ
+
+cnv-seq/cnv-seq.pl \
+--test <POST_file_name>.hits \
+--ref <PRE_file_name>.hits \
+--genome-size 680000000 \
+--window-size 5000
+
