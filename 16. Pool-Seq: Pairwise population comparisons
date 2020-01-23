@@ -1,0 +1,138 @@
+# For the following steps use PoPoolation2 (Kofler et al., 2011b). 
+# To identify indels of 2 basepairs or greater:
+
+perl popoolation2_1201/indel_filtering/identify-indel-regions.pl \
+--indel-window 5 \
+--min-count 2 \
+--input <file_name>.mpileup2 \
+--output <file_name>.mpileup2.indels.gtf
+
+# To then filter the basepairs around the indels (as these can have false SNPs due to poor alignment of reads in these positions (Schlotterer et al., 2014) - an alternative is to re-align the reads, as GATK does):
+
+perl popoolation2_1201/indel_filtering/filter-sync-by-gtf.pl \
+--input <file_name>.mpileup2 \
+--gtf <file_name>.mpileup2.indels.gtf \
+--output <file_name>.noindels.mpileup
+
+# To sync the filtered mpileup file (discarding low quality bases):
+
+java -ea -Xmx7g -jar popoolation2_1201/mpileup2sync.jar \
+--input <file_name>.noindels.mpileup \
+--output <file_name>.java.sync \
+--fastq-type sanger \
+--min-qual 20 \
+--threads 8
+
+# Allele frequencies, Fst values, Fishers Exact Tests and conversion of output
+# files into IGV format.
+
+# To calculate allele counts within populations and allele frequency differences 
+# between populations:
+
+perl popoolation2_1201/snp-frequency-diff.pl \
+--input <file_name>.java.sync \
+--output-prefix <file_name>. \
+--min-count 5 \
+--min-coverage 10 \
+--max-coverage 2%
+
+#######
+# Explanation of input (from PoPoolation2 manual/tutorial):
+#	--min-count
+#           the minimum count of the minor allele. Used for SNP identification.
+# SNPs will be identified considering all populations simultanously. default=2
+#
+#       --min-coverage
+#           the minimum coverage; used for SNP identification, the coverage in ALL
+# populations has to be higher or equal to this threshold, otherwise no SNP will 
+# be called. default=4
+#
+#       --max-coverage
+#           The maximum coverage; All populations are required to have coverages 
+# lower or equal than the maximum coverage; Mandatory The maximum 
+# coverage may be provided as one of the following:
+#           '500' a maximum coverage of 500 will be used for all populations
+#           '300,400,500' a maximum coverage of 300 will be used for the first 
+# population, a maximum coverage of 400 for the second population and so on
+#           '2%' the 2% highest coverages will be ignored, this value is independently 
+# estimated for every population
+#
+#       Only the characters A,T,C,G are considered for the coverage.  The SNP site 
+# is ignored if a deletion is found in any population.
+
+# Explanation of output files
+# _rc: this file contains the major and minor alleles for every SNP in a concise 
+# format
+# _pwc: this file contains the differences in allele frequencies for every pairwise 
+# comparision of the populations present in the synchronized file 
+#########
+
+# To calculate Fst values for every SNP. To do for 10 kb windows, change –
+# window-size to 10000 etc:
+
+perl popoolation2_1201/fst-sliding.pl \
+--input <file_name>.java.sync \
+--output <file_name>.fst \
+--suppress-noninformative \
+--min-count 5 \
+--min-coverage 10 \
+--max-coverage 2% \
+--min-covered-fraction 1 \
+--window-size 1 \
+--step-size 1 \
+--pool-size 91
+
+###########
+# Note, if there was not enough coverage the output is 'na', but if there is 
+# enough coverage but no SNP the output (comparing between populations) is 
+# 0.0. When -–suppress-noninformative is enabled, any site with insufficient 
+# coverage is discarded.
+#
+# From the PoPoolation2 tutorial wiki this is what the Fst file columns contain:
+# column 1: reference contig
+# column 2: position of the window (middle)
+# column 3: SNPs identified in the window
+# column 4: fraction of window having sufficient coverage
+# column 5: average minimum coverage
+# column >5: Fst values for all pairwise comparisons; For example "2:3=0.02" 
+# states that the Fst for comparing population 2 with population 3 (using the 
+# order of the synchronized file) is 0.02
+##########
+
+# To calculate the significance of each SNP using a Fisher's Exact Test (note, this 
+# outputs -log10(pvalue) as output - not the pvalue itself:
+
+perl popoolation2_1201/fisher-test.pl \
+--input <file_name>.java.sync \
+--output <file_name>.fet \
+--min-count 5 \
+--min-coverage 10 \
+--max-coverage 2% \
+--window-size 1 \
+--step-size 1 \
+--suppress-noninformative
+
+# To convert the above files into .igv format for Integrative Genome Viewer, or 
+# simply for ease of use.
+# Note, you require to have indexed bam files - could make by:
+
+ samtools index <file.bam> 
+
+perl popoolation2_1201/export/pwc2igv.pl \
+--input <file_name>.fst \
+--output <file_name>.fst.igv
+
+# Notes about an IGV file: see 
+# http://software.broadinstitute.org/software/igv/IGV
+
+# To use Cochran-Mantel-Haenszel test to identify consistent allele frequency
+# differences between pre- and post-treatment populations across farms.
+
+perl popoolation2_1201/cmh-test.pl \
+--input <file_name>.java.sync \
+--output <file_name>.java.cmh \
+--min-count 5 \
+--min-coverage 10 \
+--max-coverage 2% \
+--population 1-2,5-6 \
+--remove-temp
