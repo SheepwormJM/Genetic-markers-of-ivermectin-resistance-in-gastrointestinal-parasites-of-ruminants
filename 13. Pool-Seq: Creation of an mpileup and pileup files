@@ -1,0 +1,75 @@
+# Need to make an mpileup file: a file containing information about all bases 
+# identified at each genomic site for each population.
+
+# To make a list of all bam files:
+# Note that the mpileup file populations will be output in the order of the files
+# in the bam.list
+
+find "$PWD" -name \*merged.sorted.marked.bam > bam.list
+
+# To index the reference genome:
+samtools-1.3 faidx <genome_file_name>.fa
+samtools-1.3 dict <genome_file_name>.fa > <genome_file_name>.dict
+
+# To create an mpileup file:
+samtools mpileup -B -q 20 -Q 30 --ff DUP \
+-f <genome_file_name>.fa \
+-b bam.list > \
+<file_name>.mpileup
+
+# Explanation of optional requests:
+# -B 'Disable probabilistic realignment for the computation of base alignment 
+# quality (BAQ). BAQ is the Phred-scaled probability of a read base being 
+# misaligned. Applying this option greatly helps to reduce false SNPs caused by 
+# misalignments.' (from http://www.htslib.org/doc/samtools-0.1.19.html)
+# -q MAPQ - skip reads with MAPQ less than the given value. 
+# -Q Base quality - skip bases with base quality smaller than the given value.
+# -ff DUP Remove reads marked as duplicates
+
+# The mpileup output file has: 
+# 1. The contig
+# 2. The position
+# 3. The basepair
+# 4. The coverage (first sample)
+# 5. The basepair relative to the reference genome ('.' is the same, ',' is the same as the reverse strand)
+# 6. The sequencing quality
+# 7. Numbers 4-6 repeated for the second sample etc.
+
+# Note, I then needed to correct the mpileup file for the next step:
+
+sed 's/\t\t/\t!\t!/g' <file_name>.mpileup > <file_name>.mpileup2
+
+# To split the mpileup file so as to have a pileup file for each population:
+# Note, can do this manually using awk, or more quickly as below!
+
+#############
+# Made by Steve Doyle
+#############
+
+#!/bin/bash
+
+
+#(($# != 2)) || { echo -e "\nUsage: $0 <file to split> <# columns in each split>\n\n"; exit; }
+
+infile="$1"
+columns_per_sample="$2"
+
+cut -f 1-3 $infile > mpileup_positions.tmp
+cut -f 4- $infile > mpileup_data.tmp
+
+
+inc=${columns_per_sample}
+ncol=$(awk 'NR==1{print NF}' mpileup_data.tmp)
+
+((inc < ncol)) || { echo -e "\nSplit size >= number of columns\n\n"; exit; }
+
+
+for((i=1, start=1, end=$inc; i < ncol/inc + 1; i++, start+=inc, end+=inc)); do
+  cut -f$start-$end mpileup_data.tmp > "pileup.tmp.$i"
+done
+
+for i in pileup.tmp.*; do paste mpileup_positions.tmp $i > ${i#pileup.tmp.}.final.pileup; done
+
+#rm *tmp*
+
+##############
