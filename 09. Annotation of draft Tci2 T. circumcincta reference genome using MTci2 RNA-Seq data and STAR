@@ -1,0 +1,98 @@
+#
+#	RNA-Seq files
+#
+# Three biological replicates were run for each of male, female and L3 pools of 
+# MTci2 T. circumcincta worms. These were run in two lanes of the same Flowcell. Pools were 
+# sequenced using Illumina paired-end reads. RNA-Seq data was provided by the BUG Consortium (https://bugconsortium.wordpress.com/)
+
+#
+#	Quality check
+#
+# Fastqc:
+for i in *gz; do fastqc $i ; done
+
+# To MultiQC (Ewels et al., 2016) files:
+multiqc *<common_end_of_directory>/*<suffix_of_file>
+
+#
+#	Alignment of RNA-Seq reads to the genome 
+#
+# Reads were aligned using STAR (Dobin et al., 2012).
+# Samtools was used to merge output BAM files. 
+
+#STEP 1
+mkdir STAR_MAP_ALL
+
+cd STAR_MAP_ALL
+
+#ln -s <TCIRC REFERENCE>  REF.fa
+ln -s <genome_file_name>.fa REF.fa
+mkdir TCIRC_rnaseq_star_index
+
+# STEP 2--- make reference index
+bsub.py --threads 8 30 01_star_index \
+star_2.5.2 \
+--runMode genomeGenerate \
+--runThreadN 8 \
+--genomeDir TCIRC_rnaseq_star_index \
+--genomeFastaFiles REF.fa
+
+# STEP 3 --- map reads
+
+for i in ` cd <RNA-SEQ_read_directory>/ && ls -1 *_1.fastq.gz | sed -e 's/_1.fastq.gz//g' `; do \
+bsub.py 15 --threads 8 starmap_${i} STAR/bin/Linux_x86_64/STAR \
+--runThreadN 8 \
+--genomeDir TCIRC_rnaseq_star_index \
+--readFilesIn <RNA-SEQ_read_directory>/${i}_1.fastq.gz <RNA-SEQ_read_directory>/${i}_2.fastq.gz \
+--readFilesCommand zcat \
+--alignIntronMin 10 \
+--outTmpDir starmap_${i}_tmp \
+--outFileNamePrefix starmap_${i}_other_out \
+--outSAMtype BAM SortedByCoordinate \
+; done
+
+# STEP 4 - merge bams into a single bam for braker
+
+ls -1 *bam > bams.list
+bsub.py 5 03_bammerge "samtools-1.3 merge -b bams.list starmap_merge.bam"
+
+# Can check output statistics using MultiQC, but be aware that the unmapped 
+# reads have been removed.
+
+#
+#	Annotation of genome
+#
+# The Tci2 genome was annotated using BRAKER v2.0 
+# (Hoff et al., 2016; Stanke et al., 2008). 
+# This is composed of GeneMark-ET 
+# (Barnett et al., 2011; Li et al., 2009; Lomsadze et al., 2014), a program which 
+# annotates genes using aligned RNA-seq reads, and AUGUSTUS 
+# (Altschul et al., 1990; Camacho et al., 2009; Stanke et al., 2006), which uses 
+# the pre-annotated genes to further predict additional coding sequences.
+
+# Need to obtain links to required software. This may be different depending on 
+# local set-up.
+
+export AUGUSTUS_CONFIG_PATH=<path_to_file> /augustus-3.2.1/config
+export AUGUSTUS_SCRIPTS_PATH=<path_to_file>/augustus-3.2.1/scripts
+export BAMTOOLS_PATH=<path_to_directory>/bamtools/bin
+export GENEMARK_PATH=<path_to_directory>/gm_et_linux_64/gmes_petap
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<path_to_directory>/gcc-4.9.2/lib64/libstdc++.so.6
+export BAMTOOLS_PATH=<path_to_directory>/bamtools/bin
+
+### need to copy the gm_key to home directory for it to work. 
+cp <path_to_directory>/gm_et_linux_64/gmes_petap/gm_key ~/.gm_key
+
+# Run BRAKER:
+
+bsub.py --queue long --threads 30 200 01_braker_all \
+BRAKER_v2.0/braker.pl \
+--genome=REF.fa \
+--bam=starmap_merge.bam \
+--cores 10 \
+--gff3 \
+--species=<name_of_species> \
+--UTR=off \
+--overwrite \
+--workingdir=$PWD \
+--useexisting
