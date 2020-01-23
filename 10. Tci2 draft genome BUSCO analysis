@@ -1,0 +1,60 @@
+# To run proteins: 
+
+#First, need to create a file without the additional transcripts for each gene! 
+
+grep -E '>g' augustus.aa > all_geneslist
+
+grep -E '.t1' all_geneslist > all_geneslist_t1_GENELIST.txt
+
+sed 's/>//g' all_geneslist_t1_GENELIST.txt  > Changed_all_geneslist_t1_GENELIST.txt
+
+while read NAME; do samtools faidx Tc_aaseq.fa ${NAME} >> \
+Tci2.aa.fa; done < \
+Changed_all_geneslist_t1_GENELIST.txt
+
+## BUSCO script for proteins already annotated (note had to force python3 to run):
+
+#!/usr/local/bin/bash
+
+# run nematode busco
+
+export AUGUSTUS_CONFIG_PATH=<path_to_file>/augustus-3.2.1/config
+
+PREFIX=$1
+REF=$2
+
+python3 \
+/busco_v3/scripts/run_BUSCO.py \
+--i ${REF} \
+--out ${PREFIX} \
+--mode proteins\
+--lineage_path nematoda_odb9 \
+--species caenorhabditis \
+--cpu 8 --force
+
+
+## BUSCO script for the genome assembly itself: 
+
+#!/usr/local/bin/bash
+
+# run nematode busco
+
+export AUGUSTUS_CONFIG_PATH=<path_to_file>/augustus-3.2.1/config
+
+PREFIX=$1
+REF=$2
+
+python3 \
+/busco_v3/scripts/run_BUSCO.py \
+--in ${REF} \
+--out ${PREFIX} \
+--mode genome \
+--lineage_path /busco/nematoda_odb9 \
+--species caenorhabditis \
+--cpu 8 --force --restart --long --blast_single_core \
+--tmp_path ${REF}.tmp
+
+
+## The bsub cmd is like:
+
+bsub.py --threads 8 20 busco "./run_busco_nematode.sh <prefix> <genome.fa>"
