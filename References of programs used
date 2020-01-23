@@ -1,0 +1,66 @@
+Altschul, S.F., Gish, W., Miller, W., Myers, E.W., Lipman, D.J., 1990. Basic local alignment search tool. J Mol Biol 215, 403-410.
+
+Barnett, D.W., Garrison, E.K., Quinlan, A.R., Stromberg, M.P., Marth, G.T., 2011. BamTools: a C++ API and toolkit for analyzing and managing BAM files. Bioinformatics (Oxford, England) 27, 1691-1692.
+
+Blankenberg, D., Gordon, A., Von Kuster, G., Coraor, N., Taylor, J., Nekrutenko, A., Team, t.G., 2010. Manipulation of FASTQ data with Galaxy. Bioinformatics (Oxford, England) 26, 1783-1785.
+
+Camacho, C., Coulouris, G., Avagyan, V., Ma, N., Papadopoulos, J., Bealer, K., Madden, T.L., 2009. BLAST+: architecture and applications. BMC Bioinformatics 10, 421.
+
+Catchen, J., Hohenlohe, P.A., Bassham, S., Amores, A., Cresko, W.A., 2013. Stacks: an analysis tool set for population genomics. Molecular ecology 22, 3124-3140.
+
+Chang, C.C., Chow, C.C., Tellier, L.C., Vattikuti, S., Purcell, S.M., Lee, J.J., 2015. Second-generation PLINK: rising to the challenge of larger and richer datasets. GigaScience 4.
+
+Choi, Y.-J., Bisset, S.A., Doyle, S.R., Hallsworth-Pepin, K., Martin, J., Grant, W.N., Mitreva, M., 2017. Genomic introgression mapping of field-derived multiple-anthelmintic resistance in Teladorsagia circumcincta. PLoS Genetics 13, e1006857.
+
+Cingolani, P., Platts, A., Wang le, L., Coon, M., Nguyen, T., Wang, L., Land, S.J., Lu, X., Ruden, D.M., 2012. A program for annotating and predicting the effects of single nucleotide polymorphisms, SnpEff: SNPs in the genome of Drosophila melanogaster strain w1118; iso-2; iso-3. Fly 6, 80-92.
+
+Danecek, P., Auton, A., Abecasis, G., Albers, C.A., Banks, E., DePristo, M.A., Handsaker, R.E., Lunter, G., Marth, G.T., Sherry, S.T., McVean, G., Durbin, R., Genomes Project Analysis, G., 2011. The variant call format and Vcftools. Bioinformatics (Oxford, England) 27, 2156-2158.
+
+Dobin, A., Davis, C.A., Schlesinger, F., Drenkow, J., Zaleski, C., Jha, S., Batut, P., Chaisson, M., Gingeras, T.R., 2012. STAR: ultrafast universal RNA-seq aligner. Bioinformatics (Oxford, England) 29, 15-21.
+
+Dupuis, J.R., Bremer, F.T., Jombart, T., Sim, S.B., Geib, S.M., 2018. mvmapper: Interactive spatial mapping of genetic structures. Molecular ecology resources 18, 362-367.
+
+Ewels, P., Magnusson, M., Lundin, S., Käller, M., 2016. MultiQC: summarize analysis results for multiple tools and samples in a single report. Bioinformatics (Oxford, England) 32, 3047-3048.
+
+Hoff, K.J., Lange, S., Lomsadze, A., Borodovsky, M., Stanke, M., 2016. BRAKER1: Unsupervised RNA-Seq-Based Genome Annotation with GeneMark-ET and AUGUSTUS. Bioinformatics (Oxford, England) 32, 767-769.
+
+Jombart, T., 2008. adegenet: a R package for the multivariate analysis of genetic markers. Bioinformatics (Oxford, England) 24, 1403-1405.
+
+Jombart, T., Ahmed, I., 2011. adegenet 1.3-1: new tools for the analysis of genome-wide SNP data. Bioinformatics (Oxford, England) 27, 3070-3071.
+
+Jombart, T., Devillard, S., Balloux, F., 2010. Discriminant analysis of principal components: a new method for the analysis of genetically structured populations. BMC Genetics 11, 94.
+
+Kim, D., Langmead, B., Salzberg, S.L., 2015. HISAT: a fast spliced aligner with low memory requirements. Nature methods 12, 357.
+
+Kofler, R., Orozco-terWengel, P., De Maio, N., Pandey, R.V., Nolte, V., Futschik, A., Kosiol, C., Schlötterer, C., 2011a. PoPoolation: A Toolbox for Population Genetic Analysis of Next Generation Sequencing Data from Pooled Individuals. PloS one 6, e15925.
+
+Kofler, R., Pandey, R.V., Schlotterer, C., 2011b. PoPoolation2: identifying differentiation between populations using sequencing of pooled DNA samples (Pool-Seq). Bioinformatics (Oxford, England) 27, 3435-3436.
+
+Li, H., 2013. Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM.
+
+Li, H., Durbin, R., 2009. Fast and accurate short read alignment with Burrows–Wheeler transform. Bioinformatics (Oxford, England) 25, 1754-1760.
+
+Li, H., Handsaker, B., Wysoker, A., Fennell, T., Ruan, J., Homer, N., Marth, G., Abecasis, G., Durbin, R., Genome Project Data Processing, S., 2009. The Sequence Alignment/Map format and SAMtools. Bioinformatics (Oxford, England) 25, 2078-2079.
+
+Lomsadze, A., Burns, P.D., Borodovsky, M., 2014. Integration of mapped RNA-Seq reads into automatic training of eukaryotic gene finding algorithm. Nucleic Acids Res 42, e119.
+
+Manichaikul, A., Mychaleckyj, J.C., Rich, S.S., Daly, K., Sale, M., Chen, W.-M., 2010. Robust relationship inference in genome-wide association studies. Bioinformatics (Oxford, England) 26, 2867-2873.
+
+Peterson, B.K., Weber, J.N., Kay, E.H., Fisher, H.S., Hoekstra, H.E., 2012. Double digest RADseq: an inexpensive method for de novo SNP discovery and genotyping in model and non-model species. PloS one 7, e37135.
+
+Quinlan, A.R., 2014. BEDTools: The Swiss-Army Tool for Genome Feature Analysis. Current protocols in bioinformatics 47, 11.12.11-34.
+
+Quinlan, A.R., Hall, I.M., 2010. BEDTools: a flexible suite of utilities for comparing genomic features. Bioinformatics (Oxford, England) 26, 841-842.
+
+Rochette, N.C., Rivera-Colón, A.G., Catchen, J.M., 2019. Stacks 2: Analytical Methods for Paired-end Sequencing Improve RADseq-based Population Genomics. bioRxiv, 615385.
+
+Schlotterer, C., Tobler, R., Kofler, R., Nolte, V., 2014. Sequencing pools of individuals - mining genome-wide polymorphism data without big funding. Nature reviews. Genetics 15, 749-763.
+
+Stanke, M., Diekhans, M., Baertsch, R., Haussler, D., 2008. Using native and syntenically mapped cDNA alignments to improve de novo gene finding. Bioinformatics (Oxford, England) 24, 637-644.
+
+Stanke, M., Schoffmann, O., Morgenstern, B., Waack, S., 2006. Gene prediction in eukaryotes with a generalized hidden Markov model that uses hints from external sources. BMC Bioinformatics 7, 62.
+
+Wickham, H., 2016. ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York,.
+
+Xie, C., Tammi, M.T., 2009. CNV-seq, a new method to detect copy number variation using high-throughput sequencing. BMC Bioinformatics 10, 80.
+
