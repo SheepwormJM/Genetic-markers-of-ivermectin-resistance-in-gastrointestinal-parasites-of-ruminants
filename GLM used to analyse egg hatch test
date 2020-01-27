@@ -1,0 +1,196 @@
+# Many thanks to Dr Paul Johnson for help with this script!
+
+###NOTE: It makes a difference (negative or positive) as to whether the cbind has eggs or L1 first.... 
+
+rm(list = ls())
+
+getwd()
+setwd("/path/to/folder/containing/file")
+
+EHA_BZ<- read.table("EHA Pre and Post BZ adj for DMSO Feb 2018.txt", header = TRUE)
+EHA_BZ
+
+summary(EHA_BZ)
+
+EHA_BZ$Log_10_Conc <- log10(EHA_BZ$TBZ.DMSO_.ug.ml.)
+EHA_BZ$Adjusted_integer_Eggs <- EHA_BZ$Total-EHA_BZ$Adjust_L1_integers
+
+EHA_BZ_noDMSO <- subset(EHA_BZ, EHA_BZ$TBZ.DMSO_.ug.ml. > 0)
+
+EHA_BZ_PRE_RAW<-subset(EHA_BZ, EHA_BZ$Plate != 5)
+EHA_BZ_PRE_RAW_LOG<-subset(EHA_BZ_noDMSO, EHA_BZ_noDMSO$Plate != 5)
+
+EHA_BZ_P5 <- subset (EHA_BZ_noDMSO, Plate == 5)
+EHA_BZ_P5_RAW <- subset (EHA_BZ, Plate == 5)
+
+
+###### Plot of raw data #######
+
+
+#####PRE ######
+#1. Conc against % hatch
+library(ggplot2)
+
+pre_p<-qplot(x=TBZ.DMSO_.ug.ml., y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ_PRE_RAW, geom="point") + geom_vline(aes(xintercept=0.048)) 
+pre_p
+
+#2. Log_10_Conc against % hatch
+pre_p_log<-qplot(x=Log_10_Conc, y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ_PRE_RAW_LOG, geom="point")
+pre_p_log
+
+######POST ######
+#1. Conc against % hatch
+library(ggplot2)
+
+post_p<-qplot(x=TBZ.DMSO_.ug.ml., y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ_P5_RAW, geom="point") + geom_vline(aes(xintercept=0.615))
+post_p
+
+#2. Log_10_Conc against % hatch
+post_p_log<-qplot(x=Log_10_Conc, y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ_P5, geom="point")
+post_p_log
+
+
+### All ####
+#1. Conc against % hatch
+library(ggplot2)
+library(quantreg)
+library(Hmisc)
+all_p<-qplot(x=TBZ.DMSO_.ug.ml., y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ, geom="point", colour=Treatment) +labs(title="EHA percentage hatch Pre- and Post-BZ treatment\nresults adjusted by average percentage hatch in control wells", x="TBZ concentration (ug/ml)", y="Percentage hatch")
+all_p
+
+all_p<-qplot(x=TBZ.DMSO_.ug.ml., y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ, geom="smooth", colour=Treatment) +labs(title="EHA percentage hatch Pre- and Post-BZ treatment\nresults adjusted by average percentage hatch in control wells", x="TBZ concentration (ug/ml)", y="Percentage hatch")
+all_p
+
+#2. Log_10_Conc against % hatch
+all_p_log<-qplot(x=Log_10_Conc, y=Adjusted_.hatch_by_DMSO_avg, data=EHA_BZ_noDMSO, geom="point", colour=Treatment)
+all_p_log2 <- all_p_log +geom_smooth(xgrid, fitted.curve)
+all_p_log2
+
+
+####
+
+
+
+######################Plate_5, Post_BZ################################
+
+fit_PostBZ <- glm(cbind(Adjust_L1_integers, Adjusted_integer_Eggs) ~ Log_10_Conc, data=(EHA_BZ_P5), family = binomial (link="probit"))
+summary(fit_PostBZ)
+plot(fit_PostBZ)
+
+pchisq(137.76, 8, lower.tail=FALSE)
+confint(fit_PostBZ)
+
+#               2.5 %    97.5 %
+#(Intercept) 0.1984912 0.5053747
+#Log_10_Conc 1.4493775 1.8778402
+
+a <- coef(fit_PostBZ)["(Intercept)"]
+b <- coef(fit_PostBZ)["Log_10_Conc"]
+a
+b
+
+ed50PostBZ <- -a/b
+ed50PostBZ
+conc_ed50PostBZ <- 10^ed50PostBZ
+conc_ed50PostBZ
+
+## 0.6145595 ug/ml 
+
+l_a<-0.1984912
+l_b<-1.4493775
+h_a<-0.5053747
+h_b<-1.8778402
+
+
+ed50PostBZ_l <- -l_a/l_b
+ed50PostBZ_l
+conc_ed50PostBZ_l <- 10^ed50PostBZ_l
+conc_ed50PostBZ_l
+
+ed50PostBZ_h <- -h_a/h_b
+ed50PostBZ_h
+conc_ed50PostBZ_h <- 10^ed50PostBZ_h
+conc_ed50PostBZ_h
+
+#ED95
+
+ED95_post<-(((qlogis(0.05))-a)/b)
+ED95_post
+conc_ed95_post<-10^ED95_post
+conc_ed95_post
+
+######################Plates_all_pre, BZ################################
+EHA_BZ_noDMSO_Pre <- subset(EHA_BZ_noDMSO, EHA_BZ_noDMSO$Plate != 5)
+summary(EHA_BZ_noDMSO_Pre)
+
+
+fit_BZ_all_pre <- glm(cbind(Adjust_L1_integers, Adjusted_integer_Eggs) ~ Log_10_Conc, data=EHA_BZ_noDMSO_Pre, family = binomial (link="probit"))
+summary(fit_BZ_all_pre)
+plot(fit_BZ_all_pre)
+
+pchisq(520.95, 82, lower.tail=FALSE)
+confint(fit_BZ_all_pre)
+
+#                2.5 %   97.5 %
+#(Intercept) 1.3393863 1.436794
+#Log_10_Conc 0.9951355 1.116635
+
+a <- coef(fit_BZ_all_pre)["(Intercept)"]
+b <- coef(fit_BZ_all_pre)["Log_10_Conc"]
+a
+b
+
+ed50_all <- -a/b
+ed50_all
+conc_ed50_all <- 10^ed50_all
+conc_ed50_all
+
+# 0.04846276 ug/ml
+
+#95% confidence interval of:
+
+l_a<-1.3393863
+l_b<-0.9951355
+  
+h_a<-1.436794
+h_b<-1.116635
+
+
+ed50_all_pre_l <- -l_a/l_b
+ed50_all_pre_l
+conc_ed50_all_pre_l <- 10^ed50_all_pre_l
+conc_ed50_all_pre_l
+
+ed50_all_pre_h <- -h_a/h_b
+ed50_all_pre_h
+conc_ed50_all_pre_h <- 10^ed50_all_pre_h
+conc_ed50_all_pre_h
+
+#Ed95 (but remember, because of the graph, this should be ED05 as we're talking about percentage hatch):
+
+#ED95<-((qlogis(0.05)-a)/b)
+ED95<-(((qlogis(0.05))-a)/b)
+ED95
+conc_ed95<-10^ED95
+conc_ed95
+
+
+########
+
+####
+
+#The below code plots both the pre and post treatment assays and models on the same graph
+#I had to change the models so that they were working on 'reduction of % hatch' rather than 'increase in eggs'
+#While the Ed50 and CI were the same, the CI were reversed and the coefficients etc are now negative rather than positive.
+#As the models use log_conc, the graphs are with log_conc as well and thus don't show the DMSO well. 
+
+plot(x=EHA_BZ_P5$Log_10_Conc, y=EHA_BZ_P5$Adjusted_.hatch_by_DMSO_avg, col="red", main="EHT results from pre- and post-BZ treatment FECRT"
+    ,xlab="Log10 TBZ Concentration", ylab="Proportion hatching", sub="Pre-treatment = X, Post-treatment = o", ylim=c(0.0, 1.0))
+points(x=EHA_BZ_PRE_RAW_LOG$Log_10_Conc, y=EHA_BZ_PRE_RAW_LOG$Adjusted_.hatch_by_DMSO_avg, col="blue", pch=4)
+
+xgrid <- seq(min(EHA_BZ_noDMSO$Log_10_Conc), max(EHA_BZ_noDMSO$Log_10_Conc), length =50)
+fitted.curve <- predict(fit_PostBZ, newdata=data.frame(Log_10_Conc=xgrid), type="response") 
+lines(xgrid, fitted.curve, col="red")
+
+fitted.curve <- predict(fit_BZ_all_pre, newdata=data.frame(Log_10_Conc=xgrid), type="response")
+lines(xgrid, fitted.curve, col="blue")
