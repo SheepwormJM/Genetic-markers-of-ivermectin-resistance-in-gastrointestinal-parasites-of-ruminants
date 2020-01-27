@@ -1,0 +1,281 @@
+# Many thanks to Dr Paul Johnson for help with this script!
+
+###NOTE: It makes a difference (negative or positive) as to whether the cbind has eggs/L1 or L3 first.... 
+
+rm(list = ls())
+
+getwd()
+setwd("path/to/folder/containing/file")
+
+LDA_IVM<- read.table("IVM LDA adj by DMSO and clean for R.txt", header = TRUE)
+LDA_IVM
+
+summary(LDA_IVM)
+
+LDA_IVM$Log_10_Conc <- log10(LDA_IVM$IVM.DMSO.nM)
+
+LDA_IVM_noDMSO <- subset(LDA_IVM, LDA_IVM$IVM.DMSO >0)
+LDA_IVM_Post<-subset(LDA_IVM_noDMSO, LDA_IVM_noDMSO$Plate == 3)
+LDA_IVM_Pre<-subset(LDA_IVM_noDMSO, LDA_IVM_noDMSO$Plate != 3)
+LDA_IVM_Pre_P1<-subset(LDA_IVM_noDMSO, LDA_IVM_noDMSO$Plate == 1)
+LDA_IVM_Pre_P2<-subset(LDA_IVM_noDMSO, LDA_IVM_noDMSO$Plate == 2)
+
+summary(LDA_IVM_Pre)
+
+#### Pre-IVM LDA ####
+
+fit_IVM_Pre <- glm(cbind(Adj_L3_integer, Adj_non_L3_integer) ~ Log_10_Conc, data=LDA_IVM_Pre, family=binomial (link="probit"))
+summary(fit_IVM_Pre)
+plot(fit_IVM_Pre)
+
+pchisq(190.92, 37, lower.tail=FALSE)
+confint(fit_IVM_Pre)
+
+#                  2.5 %    97.5 %
+#(Intercept)  0.5617231  0.686168
+#Log_10_Conc -1.6998366 -1.530097             
+
+a <- coef(fit_IVM_Pre)["(Intercept)"]
+b <- coef(fit_IVM_Pre)["Log_10_Conc"]
+a
+b
+
+ed50_pre <- -a/b
+ed50_pre
+conc_ed50_pre <- 10^ed50_pre
+conc_ed50_pre
+
+# 2.434253 nM
+
+
+l_a<-0.5617231
+l_b<--1.6998366
+
+h_a<-0.686168
+h_b<--1.530097
+
+
+ed50_all_pre_l <- -l_a/l_b
+ed50_all_pre_l
+conc_ed50_all_pre_l <- 10^ed50_all_pre_l
+conc_ed50_all_pre_l
+
+ed50_all_pre_h <- -h_a/h_b
+ed50_all_pre_h
+conc_ed50_all_pre_h <- 10^ed50_all_pre_h
+conc_ed50_all_pre_h
+
+
+
+##### To check plate effect for Pre-IVM ####
+fit_IVM_Pre_chkpl <- glm(cbind(Adj_L3_integer, Adj_non_L3_integer) ~ Log_10_Conc +Plate, data=LDA_IVM_Pre, family=binomial (link="probit"))
+summary(fit_IVM_Pre_chkpl)
+plot(fit_IVM_Pre_chkpl)
+
+pchisq(183.46, 36, lower.tail=FALSE)
+
+#Fits slightly better (AIC a little lower), however not dramatic difference in fit.
+#Plate is significant at P<0.01
+
+
+
+### Pre-IVM Plate 1 ###
+fit_IVM_Pre_pl <- glm(cbind(Adj_L3_integer, Adj_non_L3_integer) ~ Log_10_Conc, data=LDA_IVM_Pre_P1, family=binomial (link="probit"))
+summary(fit_IVM_Pre_pl)
+plot(fit_IVM_Pre_pl)
+
+pchisq(44.944, 16, lower.tail=FALSE)
+
+#Fits better by values, one graph looks worse, others look better.
+
+confint(fit_IVM_Pre_pl)
+
+#             2.5 %    97.5 %
+#(Intercept)  0.363232  0.553663
+#Log_10_Conc -1.565209 -1.320177
+             
+
+a <- coef(fit_IVM_Pre_pl)["(Intercept)"]
+b <- coef(fit_IVM_Pre_pl)["Log_10_Conc"]
+a
+b
+
+ed50_pre <- -a/b
+ed50_pre
+conc_ed50_pre <- 10^ed50_pre
+conc_ed50_pre
+
+# 2.078615 nM
+
+
+l_a<-0.363232
+l_b<--1.565209
+
+h_a<-0.553663
+h_b<--1.320177
+
+
+ed50_all_pre_l <- -l_a/l_b
+ed50_all_pre_l
+conc_ed50_all_pre_l <- 10^ed50_all_pre_l
+conc_ed50_all_pre_l
+
+ed50_all_pre_h <- -h_a/h_b
+ed50_all_pre_h
+conc_ed50_all_pre_h <- 10^ed50_all_pre_h
+conc_ed50_all_pre_h
+
+### Pre-IVM Plate 2 ###
+fit_IVM_Pre_p2 <- glm(cbind(Adj_L3_integer, Adj_non_L3_integer) ~ Log_10_Conc, data=LDA_IVM_Pre_P2, family=binomial (link="probit"))
+summary(fit_IVM_Pre_p2)
+plot(fit_IVM_Pre_p2)
+
+#This is much worse than P1 on values, but looks better on some graphs. But has more points outside the predicted lines on residuals plot.
+
+confint(fit_IVM_Pre_p2)
+
+#            2.5 %     97.5 %
+#(Intercept)  0.6615041  0.8278087
+#Log_10_Conc -1.8687908 -1.6303845 
+
+
+
+a <- coef(fit_IVM_Pre_p2)["(Intercept)"]
+b <- coef(fit_IVM_Pre_p2)["Log_10_Conc"]
+a
+b
+
+ed50_pre <- -a/b
+ed50_pre
+conc_ed50_pre <- 10^ed50_pre
+conc_ed50_pre
+
+# 2.664839 nM
+
+
+l_a<-0.6615041
+l_b<--1.8687908
+
+h_a<-0.8278087
+h_b<--1.6303845
+
+
+ed50_all_pre_l <- -l_a/l_b
+ed50_all_pre_l
+conc_ed50_all_pre_l <- 10^ed50_all_pre_l
+conc_ed50_all_pre_l
+
+ed50_all_pre_h <- -h_a/h_b
+ed50_all_pre_h
+conc_ed50_all_pre_h <- 10^ed50_all_pre_h
+conc_ed50_all_pre_h
+
+
+
+###### Post-IVM #############
+fit_IVM_Post <- glm(cbind(Adj_L3_integer, Adj_non_L3_integer) ~ Log_10_Conc, data=LDA_IVM_Post, family=binomial (link="probit"))
+summary(fit_IVM_Post)
+plot(fit_IVM_Post)
+
+confint(fit_IVM_Post)
+
+#               2.5 %     97.5 %
+#(Intercept)  0.6410054  0.8837856
+#Log_10_Conc -1.4020650 -1.0996608
+
+
+
+
+a <- coef(fit_IVM_Post)["(Intercept)"]
+b <- coef(fit_IVM_Post)["Log_10_Conc"]
+a
+b
+
+ed50_post <- -a/b
+ed50_post
+conc_ed50_post <- 10^ed50_post
+conc_ed50_post
+
+# 4.069828 nM
+
+
+l_a<-0.6410054
+l_b<--1.4020650
+
+h_a<-0.8837856
+h_b<--1.0996608
+
+
+ed50_all_post_l <- -l_a/l_b
+ed50_all_post_l
+conc_ed50_post_l <- 10^ed50_all_post_l
+conc_ed50_post_l
+
+ed50_all_post_h <- -h_a/h_b
+ed50_all_post_h
+conc_ed50_all_post_h <- 10^ed50_all_post_h
+conc_ed50_all_post_h
+
+
+######Plotting the results ###########
+
+
+###### Plot of raw data #######
+
+
+#####PRE ######
+#1. Conc(nM) against % development
+library(ggplot2)
+
+pre_p<-qplot(x=IVM.DMSO.nM, y=Average_._dev_adj_by_DMSO, data=LDA_IVM_Pre, geom="point")  
+  pre_p
+
+#2. Log_10_Conc against % hatch
+pre_p_log<-qplot(x=Log_10_Conc, y=Average_._dev_adj_by_DMSO, data=LDA_IVM_Pre, geom="point")
+pre_p_log
+
+######POST ######
+#1. Conc against % hatch
+library(ggplot2)
+
+post_p<-qplot(x=IVM.DMSO.nM, y=Average_._dev_adj_by_DMSO, data=LDA_IVM_Post, geom="point")
+post_p
+
+#2. Log_10_Conc against % hatch
+post_p_log<-qplot(x=Log_10_Conc, y=Average_._dev_adj_by_DMSO, data=LDA_IVM_Post, geom="point")
+post_p_log
+
+
+### All ####
+#1. Conc against % hatch
+library(ggplot2)
+library(quantreg)
+library(Hmisc)
+all_p<-qplot(x=IVM.DMSO.nM, y=Average_._dev_adj_by_DMSO, data=LDA_IVM, geom="smooth", colour=Treatment)
+all_p
+
+#2. Log_10_Conc against % hatch
+all_p_log<-qplot(x=Log_10_Conc, y=Average_._dev_adj_by_DMSO, data=LDA_IVM_noDMSO, geom="smooth", colour=Treatment)
+all_p_log
+
+
+####
+
+#The below code plots both the pre and post treatment assays and models on the same graph
+#I had to change the models so that they were working on 'reduction of % hatch' rather than 'increase in eggs'
+#While the Ed50 and CI were the same, the CI were reversed and the coefficients etc are now negative rather than positive.
+#As the models use log_conc, the graphs are with log_conc as well and thus don't show the DMSO well. 
+
+plot(x=LDA_IVM_Pre$Log_10_Conc, y=LDA_IVM_Pre$Average_._dev_adj_by_DMSO, col="blue", pch=4, main="IVM LDT results from pre- and post-IVM treatment FECRT"
+     ,xlab="Log10 (IVM Concentration (nM))", ylab="Proportional development to L3", sub="Pre-treatment = X, Post-treatment = o", ylim=c(0.0, 1.0))
+points(x=LDA_IVM_Post$Log_10_Conc, y=LDA_IVM_Post$Average_._dev_adj_by_DMSO, col="red")
+
+xgrid <- seq(min(LDA_IVM_noDMSO$Log_10_Conc), max(LDA_IVM_noDMSO$Log_10_Conc), length =50)
+fitted.curve <- predict(fit_IVM_Post, newdata=data.frame(Log_10_Conc=xgrid), type="response") 
+lines(xgrid, fitted.curve, col="red")
+
+fitted.curve <- predict(fit_IVM_Pre, newdata=data.frame(Log_10_Conc=xgrid), type="response")
+lines(xgrid, fitted.curve, col="blue")
+
+
+
