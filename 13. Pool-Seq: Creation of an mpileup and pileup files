@@ -41,6 +41,7 @@ sed 's/\t\t/\t!\t!/g' <file_name>.mpileup > <file_name>.mpileup2
 
 # To split the mpileup file so as to have a pileup file for each population:
 # Note, can do this manually using awk, or more quickly as below!
+# Note that I used the mpileup file which had bases filtered from around indels as the input. 
 
 #############
 # Made by Steve Doyle
