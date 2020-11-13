@@ -68,7 +68,7 @@ perl popoolation2_1201/snp-frequency-diff.pl \
 #########
 
 # To calculate Fst values for every SNP. To do for 10 kb windows, change –
-# window-size to 10000 etc:
+# window-size to 10000, step-size to 10000 (if non-overlapping), and choose an appropriate covered fraction:
 
 perl popoolation2_1201/fst-sliding.pl \
 --input <file_name>.java.sync \
