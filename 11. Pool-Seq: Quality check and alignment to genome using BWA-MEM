@@ -14,7 +14,7 @@ multiqc *<common_end_of_directory>/*<suffix_of_file>
 # Uses samtools (Li et al., 2009) and BWA-MEM (Li, 2013; Li and Durbin, 2009)
 # Put in the command line when run the script:
 
-./run_bwa_splitter <sample_name> <reference.fa> <read1_file.fa> <read2_file.fa>
+./run_bwa_splitter <sample_name> <reference.fa> <read1_file.fq> <read2_file.fq>
 
 # BWA-MEM alignment of reads shell script for Pool-Seq:
 
